@@ -5,39 +5,46 @@ export default class CadastroCliente {
   #clientes;
 
   constructor() {
-    this.#clientes = [];
+    this.#clientes = new Map();
   }
 
   cadastrarCliente(cliente) {
     validate(cliente, Cliente);
-    this.#clientes.push(cliente);
+    this.#clientes.set(cliente.documento, cliente);
     return true;
   }
 
   excluirCliente(documentoCliente) {
-    validate(documentoCliente, Cliente);
-    const index = this.#clientes.findIndex(
-      (c) => c.documento === documentoCliente,
-    );
-    if (index === -1) throw new Error("Cliente não encontrado");
+    validate(documentoCliente, "String");
+    if (!this.#clientes.has(documentoCliente)) throw new Error("Cliente não encontrado");
 
-    this.#clientes.splice(index, 1);
+    this.#clientes.delete(documentoCliente);
     return true;
   }
 
-  cliente(documentoCliente) {
-    return this.#clientes.find((c) => c.documento === documentoCliente);
+  getCliente(documentoCliente) {
+    return this.#clientes.get(documentoCliente);
+  }
+
+  obterClientePorPlaca(placa) {
+    validate(placa, "String");
+    for (const cliente of this.clientes) {
+      if (cliente.veiculos.includes(placa)) {
+        return cliente;
+      }
+    }
+    return null;
   }
 
   get clientes() {
-    return this.#clientes;
+    return Array.from(this.#clientes.values());
   }
 
   get qtdClientes() {
-    return this.#clientes.length;
+    return this.#clientes.size;
   }
 
   isEmpty() {
-    return this.#clientes.length === 0;
+    return this.#clientes.size === 0;
   }
 }

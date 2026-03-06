@@ -1,5 +1,4 @@
 import { validate } from "bycontract";
-import { TIPOS } from "../../constants.js";
 
 export default class Cliente {
   #nome;
@@ -17,7 +16,7 @@ export default class Cliente {
 
     this.#nome = nome;
     this.#tipo = tipo;
-    this.#veiculos = [...veiculos];
+    this.#veiculos = new Set(veiculos);
 
     if (!this.validaDocumento(documento)) {
       throw new Error("Documento inválido.");
@@ -39,11 +38,11 @@ export default class Cliente {
   }
 
   get veiculos() {
-    return this.#veiculos;
+    return Array.from(this.#veiculos);
   }
 
   toString() {
-    return `Cliente { nome: '${this.#nome}', documento: '${this.#documento}', tipo: '${this.#tipo}', veiculos: ${JSON.stringify(this.#veiculos)} }`;
+    return `Cliente { nome: '${this.#nome}', documento: '${this.#documento}', tipo: '${this.#tipo}', veiculos: ${JSON.stringify(this.veiculos)} }`;
   }
 
   validaDocumento(doc) {
@@ -53,10 +52,23 @@ export default class Cliente {
 
   cadastrarVeiculo(placa) {
     validate(placa, "String"); 
-    if (this.#veiculos.includes(placa)) {
+    if (this.#veiculos.has(placa)) {
       throw new Error("Veículo já cadastrado para este cliente.");
     }
-    
-    this.#veiculos.push(placa);
+    this.#veiculos.add(placa);
+    return true;
+  }
+
+  removerVeiculo(placa) {
+    validate(placa, "String");
+    if (!this.#veiculos.has(placa)) {
+      throw new Error("Veículo não encontrado para este cliente.");
+    }
+    this.#veiculos.delete(placa);
+    return true;
+  }
+
+  calcularTarifa(ticket) {
+    validate(ticket, "TicketEstacionamento");
   }
 }

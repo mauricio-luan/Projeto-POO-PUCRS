@@ -52,4 +52,13 @@ export default class Empresa extends Cliente {
   toString() {
     return `${super.toString().slice(0, -2)}, debitos: ${this.debitos}, adimplente: ${this.estaAdimplente()} }`;
   }
+
+  calcularTarifa(ticket) {
+    const tarifaDiaria = 10;
+    const multa = 3;
+    if (ticket.qtdDiasUso > 1) {
+      return (tarifaDiaria * ticket.qtdDiasUso) + (multa * ticket.qtdDiasUso);
+    }
+    return tarifaDiaria * ticket.qtdDiasUso;
+  }
 }

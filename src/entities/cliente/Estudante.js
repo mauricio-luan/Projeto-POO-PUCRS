@@ -5,14 +5,13 @@ export default class Estudante extends Cliente {
   #saldo;
 
   constructor({ nome, documento, veiculos, saldo }) {
+    validate(saldo, "Number");
+
     if (veiculos.length > 1)
       throw new Error("Estudantes não podem possuir mais de um veículo.");
     
     super({ nome, documento, tipo: "Estudante", veiculos });
     
-    validate(saldo, "Number");
-    if (this.creditosNegativos(saldo))
-      throw new Error("Valores de créditos negativos não permitidos.");
     this.#saldo = saldo;
   }
 
@@ -25,6 +24,11 @@ export default class Estudante extends Cliente {
     if (this.creditosNegativos(valor))
       throw new Error("Valores de créditos negativos não permitidos.");
     this.#saldo += valor;
+  }
+
+  descontarSaldo(valor) {
+    validate(valor, "Number");
+    return this.#saldo -= valor;
   }
 
   creditosNegativos(valor) {
@@ -42,4 +46,10 @@ export default class Estudante extends Cliente {
 
     super.cadastrarVeiculo(placa);
   }
+
+  calcularTarifa(ticket) {
+    const tarifaDiaria = 3;
+    return tarifaDiaria * ticket.qtdDiasUso;
+  }
+
 }

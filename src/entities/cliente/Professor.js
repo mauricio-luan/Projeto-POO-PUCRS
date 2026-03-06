@@ -1,3 +1,4 @@
+import { validate} from "bycontract";
 import Cliente from "./Cliente.js";
 
 export default class Professor extends Cliente {
@@ -13,5 +14,10 @@ export default class Professor extends Cliente {
       throw new Error("Professores não podem possuir mais de dois veículos.");
 
     super.cadastrarVeiculo(placa);
+  }
+
+  calcularTarifa(ticket) {
+    validate(ticket, "TicketEstacionamento");
+    return 0;
   }
 }
