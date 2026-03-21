@@ -4,17 +4,64 @@ import Professor from "./src/entities/cliente/Professor.js";
 import Estudante from "./src/entities/cliente/Estudante.js";
 import Empresa from "./src/entities/cliente/Empresa.js";
 import RegistroDeEntradasESaidas from "./src/entities/estacionamento/RegistroDeEntradasESaidas.js";
+import CSV from "./src/entities/csv/CSV.js";
+import { TIPOS } from "./src/constants.js";
+
+async function main() {
+  const cadastroCliente = new CadastroCliente();
+  const csv = new CSV(cadastroCliente);
+  const clientesDoCsv = await csv.getClientesDoCSV();
+  const estacionamento = new RegistroDeEntradasESaidas(cadastroCliente);
+
+  await setClientes(cadastroCliente, clientesDoCsv);
+  await menu(cadastroCliente, estacionamento, csv);
+}
+
+async function setClientes(cadastroCliente, listaClientesCSV) {
+  if (!listaClientesCSV || listaClientesCSV.length === 0) return;
+
+  listaClientesCSV.forEach((linha) => {
+    let novoCliente;
+    const colunas = linha.split(",");
+
+    const cliente = {
+      nome: colunas[2],
+      documento: colunas[0],
+      tipo: colunas[1],
+      veiculos: colunas[3].split(";").map((v) => v.replaceAll('"', "").trim()),
+    };
+
+    if (cliente.tipo === TIPOS.PROFESSOR) {
+      novoCliente = new Professor({ ...cliente });
+    }
+
+    if (cliente.tipo === TIPOS.ESTUDANTE) {
+      novoCliente = new Estudante({
+        ...cliente,
+        saldo: parseFloat(colunas[4]),
+      });
+    }
+
+    if (cliente.tipo === TIPOS.EMPRESA) {
+      novoCliente = new Empresa({
+        ...cliente,
+        debitos: parseFloat(colunas[4]),
+        adimplente: colunas[5],
+      });
+    }
+
+    cadastroCliente.cadastrarCliente(novoCliente);
+  });
+}
 
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
 });
+
 const ask = (q) => new Promise((r) => rl.question(q, r));
 
-const clientes = new CadastroCliente();
-const estacionamento = new RegistroDeEntradasESaidas(clientes);
-
-async function menu() {
+async function menu(clientes, estacionamento, csv) {
   console.log(`
 === ESTACIONAMENTO ===
 1. Cadastrar cliente
@@ -30,24 +77,25 @@ async function menu() {
   try {
     switch (op) {
       case "1":
-        await cadastrar();
+        await cadastrar(clientes);
         break;
       case "2":
-        listar();
+        listar(clientes);
         break;
       case "3":
-        await entrada();
+        await entrada(estacionamento);
         break;
       case "4":
-        await saida();
+        await saida(clientes, estacionamento);
         break;
       case "5":
-        verPatio();
+        verPatio(estacionamento);
         break;
       case "6":
-        verListaNegra();
+        verListaNegra(estacionamento);
         break;
       case "0":
+        await salvarClientesCSV(csv);
         console.log("Encerrando.");
         rl.close();
         return;
@@ -58,10 +106,10 @@ async function menu() {
     console.log(`Erro: ${e.message}`);
   }
 
-  await menu();
+  await menu(clientes, estacionamento, csv);
 }
 
-async function cadastrar() {
+async function cadastrar(clientes) {
   const tipo = (await ask("Tipo (1-Estudante 2-Professor 3-Empresa): ")).trim();
   const nome = (await ask("Nome: ")).trim();
   const doc = (await ask("Documento (CPF/CNPJ): ")).trim();
@@ -97,7 +145,7 @@ async function cadastrar() {
   console.log(`Cadastrado: ${cliente.toString()}`);
 }
 
-function listar() {
+function listar(clientes) {
   if (clientes.isEmpty()) {
     console.log("Nenhum cliente.");
     return;
@@ -105,13 +153,13 @@ function listar() {
   clientes.clientes.forEach((c) => console.log(`  ${c.toString()}`));
 }
 
-async function entrada() {
+async function entrada(estacionamento) {
   const placa = (await ask("Placa: ")).trim();
   const ticket = estacionamento.registraEntrada(placa);
   console.log(`Entrada OK: ${ticket.toString()}`);
 }
 
-async function saida() {
+async function saida(clientes, estacionamento) {
   const placa = (await ask("Placa: ")).trim();
   const cliente = clientes.obterClientePorPlaca(placa);
   let pgto = true;
@@ -130,7 +178,7 @@ async function saida() {
     console.log(`Placa ${placa} adicionada à lista negra.`);
 }
 
-function verPatio() {
+function verPatio(estacionamento) {
   const p = estacionamento.patio;
   if (p.size === 0) {
     console.log("Pátio vazio.");
@@ -139,7 +187,7 @@ function verPatio() {
   for (const [, t] of p) console.log(`  ${t.toString()}`);
 }
 
-function verListaNegra() {
+function verListaNegra(estacionamento) {
   const ln = estacionamento.listaNegra;
   if (ln.size === 0) {
     console.log("Lista negra vazia.");
@@ -148,4 +196,12 @@ function verListaNegra() {
   for (const placa of ln) console.log(`  ${placa}`);
 }
 
-menu();
+async function salvarClientesCSV(csv) {
+  try {
+    return await csv.geraCSV();
+  } catch (e) {
+    console.error("Erro ao salvar CSV:", e.message || e);
+  }
+}
+
+main();

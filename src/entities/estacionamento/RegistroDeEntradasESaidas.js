@@ -14,8 +14,8 @@ export default class RegistroDeEntradasESaidas {
   #listaNegra;
   #historicoTickets;
 
-  constructor(csvCadastroClientes) {
-    this.#clientes = csvCadastroClientes || new CadastroCliente(); //csv com os clientes
+  constructor(cadastroCliente) {
+    this.#clientes = cadastroCliente;
     this.#patio = new Map();
     this.#listaNegra = new Set();
     this.#historicoTickets = [];

@@ -22,6 +22,10 @@ export default class Empresa extends Cliente {
     return this.#debitos;
   }
 
+  get adimplente() {
+    return this.#adimplente;
+  }
+
   estaAdimplente() {
     return this.#adimplente;
   }
