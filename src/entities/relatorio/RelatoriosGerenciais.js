@@ -9,25 +9,89 @@ export default class RelatoriosGerenciais {
     this.#registroClientes = registroClientes;
   }
 
-  geraRelatorioEntradasESaidas() {}
+  geraRelatorioArrecadacao(dataInicial, dataFinal) {
+    validate(arguments, ["Date", "Date"]);
+    const tickets = this.#registroEntradasESaidas.historicoTicketsToJSON;
 
-  geraRelatorioClientes() {}
+    return tickets.filter(
+      (ticket) =>
+        ticket.valorCobrado > 1 &&
+        ticket.dataHoraEntrada >= dataInicial &&
+        ticket.dataHoraSaida <= dataFinal,
+    );
+  }
 
-  // 1. Valor total arrecadado por período (e opcionalmente categoria)
-  geraRelatorioArrecadacao(dataInicial, dataFinal, tipoCliente = null) {}
+  geraSituacaoClienteCadastrado(identificador) {
+    validate(identificador, "String");
 
-  // 2. Situação de um cliente cadastrado (veículos lá dentro e saldo/débito)
-  geraSituacaoClienteCadastrado(identificador) {} // Pode ser o CPF/CNPJ
+    const cliente = this.#registroClientes.getClienteComoObjeto(identificador);
 
-  // 3. Registros de estacionamento de um cliente cadastrado em determinado período
-  geraHistoricoClienteCadastrado(identificador, dataInicial, dataFinal) {}
+    cliente.estacionados = [];
+    cliente.veiculos.forEach((placa) => {
+      if (this.#registroEntradasESaidas.veiculoEstaEstacionado(placa)) {
+        cliente.estacionados.push(placa);
+      }
+    });
 
-  // 4. Registros de estacionamento de um cliente não cadastrado (Avulso) em determinado período
-  geraHistoricoClienteAvulso(placa, dataInicial, dataFinal) {}
+    return cliente;
+  }
 
-  // 5. Relação dos clientes impedidos de entrar no estacionamento
-  geraRelatorioListaNegra() {}
+  geraHistoricoRegistroEstacionamentoPorCliente(
+    identificador,
+    dataInicial,
+    dataFinal,
+  ) {
+    validate(arguments, ["String", "Date", "Date"]);
+    const cliente = this.#registroClientes.getClienteComoObjeto(identificador);
+    const tickets = this.#registroEntradasESaidas.historicoTicketsToJSON;
 
-  // 6. Relação dos 10 clientes mais frequentes do ano
-  geraTop10ClientesFrequentes(ano) {}
+    const historico = cliente.veiculos.map((placa) => {
+      return {
+        placa,
+        registros: tickets.filter(
+          (ticket) =>
+            ticket.placa === placa &&
+            ticket.dataHoraEntrada >= dataInicial &&
+            ticket.dataHoraSaida <= dataFinal,
+        ),
+      };
+    });
+    return JSON.stringify(historico, null, 2);
+  }
+
+  geraHistoricoClienteAvulso(placa, dataInicial, dataFinal) {
+    validate(arguments, ["String", "Date", "Date"]);
+    const tickets = this.#registroEntradasESaidas.historicoTicketsToJSON;
+    return {
+      placa,
+      registros: tickets.filter(
+        (ticket) =>
+          ticket.placa === placa &&
+          ticket.dataHoraEntrada >= dataInicial &&
+          ticket.dataHoraSaida <= dataFinal,
+      ),
+    };
+  }
+
+  geraRelatorioListaNegra() {
+    return this.#registroEntradasESaidas.listaNegraToJSON;
+  }
+
+  geraTop10ClientesFrequentes() {
+    const tickets = this.#registroEntradasESaidas.historicoTicketsToJSON;
+
+    const lista = {};
+    for (const ticket of tickets) {
+      if (!lista[ticket.placa]) {
+        lista[ticket.placa] = 1;
+      } else {
+        lista[ticket.placa] = lista[ticket.placa] + 1;
+      }
+    }
+
+    return Object.entries(lista)
+      .map(([placa, qtdUso]) => ({ placa, qtdUso }))
+      .sort((a, b) => b.qtdUso - a.qtdUso)
+      .slice(0, 10);
+  }
 }

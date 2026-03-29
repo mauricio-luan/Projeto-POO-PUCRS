@@ -11,14 +11,21 @@ const rl = readline.createInterface({
 const ask = (q) => new Promise((r) => rl.question(q, r));
 
 export default class Menu {
-  #cadastrarCliente;
+  #cadastroCliente;
   #registroDeEntradasESaidas;
   #CSV;
+  #relatoriosGerenciais;
 
-  constructor(cadastroCliente, registroDeEntradasESaidas, CSV) {
-    this.#cadastrarCliente = cadastroCliente;
+  constructor(
+    cadastroCliente,
+    registroDeEntradasESaidas,
+    CSV,
+    relatoriosGerenciais,
+  ) {
+    this.#cadastroCliente = cadastroCliente;
     this.#registroDeEntradasESaidas = registroDeEntradasESaidas;
     this.#CSV = CSV;
+    this.#relatoriosGerenciais = relatoriosGerenciais;
   }
 
   async menu() {
@@ -30,6 +37,12 @@ export default class Menu {
 4. Registrar saída
 5. Ver pátio
 6. Ver lista negra
+7. Relatório Arrecadação por período
+8. Relatório Situação de cliente cadastrado
+9. Relatório Histórico de Registro de Estacionamento por Cliente
+10. Relatório Histórico de Registro de Estacionamento por Cliente Avulso
+11. Relatório Clientes na Lista Negra
+12. Relatório Top 10 Clientes mais frequentes do ano
 0. Sair`);
 
     const op = (await ask("\nOpção: ")).trim();
@@ -53,6 +66,27 @@ export default class Menu {
           break;
         case "6":
           this.verListaNegra();
+          break;
+        case "7":
+          await this.chamaRelatorioArrecadacao();
+          break;
+        case "8":
+          await this.chamaRelatorioSituacaoClienteCadastrado();
+          break;
+        case "9":
+          await this.chamaHistoricoRegistroEstacionamentoPorCliente();
+          break;
+        case "10":
+          await this.chamaHistoricoRegistroEstacionamentoPorClienteAvulso();
+          break;
+        case "11":
+          const r = this.#relatoriosGerenciais.geraRelatorioListaNegra();
+          console.log(r);
+          break;
+        case "12":
+          const top10 =
+            this.#relatoriosGerenciais.geraTop10ClientesFrequentes();
+          console.log(top10);
           break;
         case "0":
           await this.salvarClientesCSV();
@@ -78,7 +112,7 @@ export default class Menu {
     const veiculos = (await ask("Placas (separadas por vírgula): "))
       .trim()
       .split(",")
-      .map((v) => v.trim())
+      .map((v) => v.trim().toUpperCase())
       .filter(Boolean);
 
     let cliente;
@@ -103,29 +137,29 @@ export default class Menu {
         return;
     }
 
-    this.#cadastrarCliente.cadastrarCliente(cliente);
+    this.#cadastroCliente.cadastrarCliente(cliente);
     console.log(`Cadastrado: ${cliente.toString()}`);
   }
 
   listar() {
-    if (this.#cadastrarCliente.isEmpty()) {
+    if (this.#cadastroCliente.isEmpty()) {
       console.log("Nenhum cliente.");
       return;
     }
-    this.#cadastrarCliente.clientes.forEach((c) =>
+    this.#cadastroCliente.clientes.forEach((c) =>
       console.log(`  ${c.toString()}`),
     );
   }
 
   async entrada() {
-    const placa = (await ask("Placa: ")).trim();
+    const placa = (await ask("Placa: ")).trim().toUpperCase();
     const ticket = this.#registroDeEntradasESaidas.registraEntrada(placa);
     console.log(`Entrada OK: ${ticket.toString()}`);
   }
 
   async saida() {
-    const placa = (await ask("Placa: ")).trim();
-    const cliente = this.#cadastrarCliente.obterClientePorPlaca(placa);
+    const placa = (await ask("Placa: ")).trim().toUpperCase();
+    const cliente = this.#cadastroCliente.obterClientePorPlaca(placa);
     let pgto = true;
 
     if (!cliente) {
@@ -166,5 +200,126 @@ export default class Menu {
     } catch (e) {
       console.error("Erro ao salvar CSV:", e.message || e);
     }
+  }
+
+  async chamaRelatorioArrecadacao() {
+    const { dataInicial, dataFinal } = await this.capturaDatas();
+    const tickets = this.#relatoriosGerenciais.geraRelatorioArrecadacao(
+      dataInicial,
+      dataFinal,
+    );
+    tickets.forEach((t) => console.log(t));
+  }
+
+  async chamaRelatorioSituacaoClienteCadastrado() {
+    const doc = (await ask("Documento (CPF/CNPJ): ")).trim();
+    const r = this.#relatoriosGerenciais.geraSituacaoClienteCadastrado(doc);
+    console.log(r);
+  }
+
+  async capturaDatas() {
+    console.log("Formato de data: DD/MM/AAAA");
+
+    const hoje = new Date();
+    hoje.setHours(23, 59, 59, 999);
+
+    let fDataInicial;
+    while (!fDataInicial) {
+      const entrada = (await ask("Digite a data inicial: ")).trim();
+
+      if (!/^\d{2}\/\d{2}\/\d{4}$/.test(entrada)) {
+        console.log("Formato invalido. Use DD/MM/AAAA.");
+        continue;
+      }
+
+      const [diaStr, mesStr, anoStr] = entrada.split("/");
+      const dia = Number.parseInt(diaStr, 10);
+      const mes = Number.parseInt(mesStr, 10);
+      const ano = Number.parseInt(anoStr, 10);
+
+      const data = new Date(ano, mes - 1, dia, 0, 0, 0, 0);
+      const dataValida =
+        data.getFullYear() === ano &&
+        data.getMonth() === mes - 1 &&
+        data.getDate() === dia;
+
+      if (!dataValida) {
+        console.log("Data inicial invalida.");
+        continue;
+      }
+
+      if (data > hoje) {
+        console.log("Data inicial nao pode ser maior que hoje.");
+        continue;
+      }
+
+      fDataInicial = data;
+    }
+
+    let fDataFinal;
+    while (!fDataFinal) {
+      const entrada = (await ask("Digite a data final: ")).trim();
+
+      if (!/^\d{2}\/\d{2}\/\d{4}$/.test(entrada)) {
+        console.log("Formato invalido. Use DD/MM/AAAA.");
+        continue;
+      }
+
+      const [diaStr, mesStr, anoStr] = entrada.split("/");
+      const dia = Number.parseInt(diaStr, 10);
+      const mes = Number.parseInt(mesStr, 10);
+      const ano = Number.parseInt(anoStr, 10);
+
+      const data = new Date(ano, mes - 1, dia, 23, 59, 59, 999);
+      const dataValida =
+        data.getFullYear() === ano &&
+        data.getMonth() === mes - 1 &&
+        data.getDate() === dia;
+
+      if (!dataValida) {
+        console.log("Data final invalida.");
+        continue;
+      }
+
+      if (data > hoje) {
+        console.log("Data final nao pode ser maior que hoje.");
+        continue;
+      }
+
+      if (data < fDataInicial) {
+        console.log("Data final nao pode ser anterior a data inicial.");
+        continue;
+      }
+
+      fDataFinal = data;
+    }
+
+    return {
+      dataInicial: fDataInicial,
+      dataFinal: fDataFinal,
+    };
+  }
+
+  async chamaHistoricoRegistroEstacionamentoPorCliente() {
+    const doc = (await ask("Documento (CPF/CNPJ): ")).trim();
+    const { dataInicial, dataFinal } = await this.capturaDatas();
+    const r =
+      this.#relatoriosGerenciais.geraHistoricoRegistroEstacionamentoPorCliente(
+        doc,
+        dataInicial,
+        dataFinal,
+      );
+    console.log(r);
+  }
+
+  async chamaHistoricoRegistroEstacionamentoPorClienteAvulso() {
+    const placa = (await ask("Placa: ")).trim().toUpperCase();
+    const { dataInicial, dataFinal } = await this.capturaDatas();
+    const r = this.#relatoriosGerenciais.geraHistoricoClienteAvulso(
+      placa,
+      dataInicial,
+      dataFinal,
+    );
+    console.log(r);
   }
 }

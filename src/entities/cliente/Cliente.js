@@ -104,5 +104,5 @@ export default class Cliente {
    * @param {import("../estacionamento/TicketEstacionamento.js").default} ticket - O ticket de estacionamento.
    * @returns {number} - A tarifa calculada.
    */
-  calcularTarifa(ticket) {}
+  calcularTarifa() {}
 }

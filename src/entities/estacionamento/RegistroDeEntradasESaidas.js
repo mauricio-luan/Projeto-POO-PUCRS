@@ -2,7 +2,6 @@ import { validate } from "bycontract";
 import { TIPOS } from "../../constants.js";
 import TicketEstacionamento from "./TicketEstacionamento.js";
 import Avulso from "../cliente/Avulso.js";
-import CadastroCliente from "../cliente/CadastroCliente.js";
 
 /**
  * Classe que gerencia entradas e saídas de veículos no estacionamento.
@@ -140,6 +139,20 @@ export default class RegistroDeEntradasESaidas {
     return new Set(this.#listaNegra);
   }
 
+  get listaNegraToJSON() {
+    return Array.from(this.#listaNegra).map((placa) => ({ placa }));
+  }
+
+  /**
+   * Reinsere uma placa previamente persistida na lista negra.
+   * @param {string} placa - A placa que deve voltar para a lista negra.
+   * @returns {void}
+   */
+  reinserePlacaNaListaNegra(placa) {
+    validate(placa, "String");
+    this.#listaNegra.add(placa);
+  }
+
   set historicoTickets(ticket) {
     this.#historicoTickets.push(ticket);
   }
@@ -162,5 +175,10 @@ export default class RegistroDeEntradasESaidas {
    */
   reinsereTicketEmAberto(ticket) {
     this.#patio.set(ticket.placa, ticket);
+  }
+
+  veiculoEstaEstacionado(placa) {
+    validate(placa, "String");
+    return this.#patio.has(placa);
   }
 }

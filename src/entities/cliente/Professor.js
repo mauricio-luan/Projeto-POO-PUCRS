@@ -1,4 +1,3 @@
-import { validate } from "bycontract";
 import Cliente from "./Cliente.js";
 import { TIPOS } from "../../constants.js";
 
@@ -35,10 +34,9 @@ export default class Professor extends Cliente {
 
   /**
    * Calcula a tarifa devida por um professor.
-   * @param {import("../estacionamento/TicketEstacionamento.js").default} ticket
    * @returns {number}
    */
-  calcularTarifa(ticket) {
+  calcularTarifa() {
     return 0;
   }
 }

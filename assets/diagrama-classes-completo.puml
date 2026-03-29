@@ -1,0 +1,244 @@
+@startuml
+skinparam classAttributeIconSize 0
+hide empty members
+
+title Diagrama de Classes - Projeto Estacionamento
+
+package "cliente" {
+  class Cliente {
+    -nome: String
+    -documento: String
+    -tipo: String
+    -veiculos: Set<String>
+    +constructor(nome, documento, tipo, veiculos)
+    +get nome(): String
+    +get documento(): String
+    +get tipo(): String
+    +get veiculos(): String[]
+    +toString(): String
+    +validaDocumento(doc): boolean
+    +cadastrarVeiculo(placa): boolean
+    +removerVeiculo(placa): boolean
+    +calcularTarifa(ticket)
+  }
+
+  class Professor {
+    +constructor(nome, documento, veiculos)
+    +cadastrarVeiculo(placa)
+    +calcularTarifa(ticket): number
+  }
+
+  class Estudante {
+    -saldo: number
+    +constructor(nome, documento, veiculos, saldo)
+    +get saldo(): number
+    +adicionaSaldo(valor)
+    +descontarSaldo(valor): number
+    +creditosNegativos(valor): boolean
+    +toString(): String
+    +cadastrarVeiculo(placa)
+    +calcularTarifa(ticket): number
+  }
+
+  class Empresa {
+    -debitos: number
+    -adimplente: boolean
+    +constructor(nome, documento, veiculos, debitos = 0)
+    +get debitos(): number
+    +get adimplente(): boolean
+    +estaAdimplente(): boolean
+    +imputarDebito(valor)
+    +quitarDebitos(pagamento)
+    +toString(): String
+    +calcularTarifa(ticket): number
+  }
+
+  class Avulso {
+    -veiculos: String[]
+    +constructor(veiculos)
+    +calcularTarifa(ticket): number
+  }
+
+  class CadastroCliente {
+    -clientes: Map<String, Cliente>
+    +constructor()
+    +obterClientePorPlaca(placa): Cliente | null
+    +get clientes(): Cliente[]
+    +get qtdClientes(): number
+    +clientesToJSON(): object[]
+    +cadastrarCliente(cliente): boolean
+    +excluirCliente(documentoCliente): boolean
+    +getCliente(documentoCliente): Cliente | undefined
+    +getClienteComoObjeto(documentoCliente): object
+    +isEmpty(): boolean
+  }
+}
+
+package "estacionamento" {
+  class TicketEstacionamento {
+    -placa: String
+    -tipoCliente: String
+    -dataHoraEntrada: Date
+    -dataHoraSaida: Date | null
+    -qtdDiasUso: number | null
+    -valorCobrado: number
+    +constructor(placa, tipoCliente, dataHoraEntrada = new Date())
+    +get placa(): String
+    +get tipoCliente(): String
+    +get dataHoraEntrada(): Date
+    +get dataHoraSaida(): Date | null
+    +get qtdDiasUso(): number | null
+    +set dataHoraSaida(data)
+    +set qtdDiasUso(dias)
+    +estaEmAberto(): boolean
+    +toString(): String
+    +get valorCobrado(): number
+    +set valorCobrado(valor)
+  }
+
+  class RegistroDeEntradasESaidas {
+    -clientes: CadastroCliente
+    -patio: Map<String, TicketEstacionamento>
+    -listaNegra: Set<String>
+    -historicoTickets: TicketEstacionamento[]
+    +constructor(cadastroCliente)
+    +registraEntrada(placa): TicketEstacionamento
+    +registraSaida(placa, pgtoAprovado): TicketEstacionamento
+    +get patio(): Map<String, TicketEstacionamento>
+    +get listaNegra(): Set<String>
+    +get listaNegraToJSON(): object[]
+    +set historicoTickets(ticket)
+    +get historicoTicketsToJSON(): object[]
+    +reinserePlacaNaListaNegra(placa)
+    +reinsereTicketEmAberto(ticket)
+    +veiculoEstaEstacionado(placa): boolean
+  }
+}
+
+package "csv" {
+  class CSV {
+    -clientes: CadastroCliente
+    -historicoTickets: RegistroDeEntradasESaidas
+    -listaNegra: RegistroDeEntradasESaidas
+    -caminhoCSV: String
+    -caminhoCSVHistoricoTickets: String
+    -caminhoCSVListaNegra: String
+    -csv: String
+    -csvHistoricoTickets: String
+    -csvListaNegra: String
+    +constructor(cadastroCliente, estacionamento)
+    +getCSVClientes(): Promise<String[]>
+    +getCSVHistoricoTickets(): Promise<String[]>
+    +getCSVListaNegra(): Promise<String[]>
+    +geraCSV(): Promise<boolean>
+  }
+}
+
+package "relatorio" {
+  class RelatoriosGerenciais {
+    -registroEntradasESaidas: RegistroDeEntradasESaidas
+    -registroClientes: CadastroCliente
+    +constructor(registroEntradasESaidas, registroClientes)
+    +geraRelatorioArrecadacao(dataInicial, dataFinal)
+    +geraSituacaoClienteCadastrado(identificador)
+    +geraHistoricoRegistroEstacionamentoPorCliente(identificador, dataInicial, dataFinal)
+    +geraHistoricoClienteAvulso(placa, dataInicial, dataFinal)
+    +geraRelatorioListaNegra()
+    +geraTop10ClientesFrequentes(ano)
+  }
+}
+
+package "menu" {
+  class Menu {
+    -cadastroCliente: CadastroCliente
+    -registroDeEntradasESaidas: RegistroDeEntradasESaidas
+    -CSV: CSV
+    -relatoriosGerenciais: RelatoriosGerenciais
+    +constructor(cadastroCliente, registroDeEntradasESaidas, CSV, relatoriosGerenciais)
+    +menu()
+    +cadastrar()
+    +listar()
+    +entrada()
+    +saida()
+    +verPatio()
+    +verListaNegra()
+    +salvarClientesCSV()
+    +chamaRelatorioArrecadacao()
+    +chamaRelatorioSituacaoClienteCadastrado()
+    +capturaDatas()
+    +chamaHistoricoRegistroEstacionamentoPorCliente()
+  }
+}
+
+class TIPOS <<enumeration>> {
+  PROFESSOR
+  ESTUDANTE
+  EMPRESA
+  AVULSO
+}
+
+class TARIFAS <<constant>> {
+  DIARIA = 10
+  MULTA = 3
+  FIXO_POR_HORA = 2
+  FIXO_POR_INGRESSO = 5
+}
+
+Professor --|> Cliente
+Estudante --|> Cliente
+Empresa --|> Cliente
+
+CadastroCliente "1" o-- "0..*" Cliente : armazena
+RegistroDeEntradasESaidas --> CadastroCliente : consulta clientes
+RegistroDeEntradasESaidas *-- "0..*" TicketEstacionamento : cria / mantem
+RegistroDeEntradasESaidas ..> Avulso : calcula tarifa\nna saida de nao cadastrados
+
+CSV --> CadastroCliente : serializa clientes
+CSV --> RegistroDeEntradasESaidas : serializa tickets\ne lista negra
+
+RelatoriosGerenciais --> RegistroDeEntradasESaidas : consulta historico/patio
+RelatoriosGerenciais --> CadastroCliente : consulta cadastro
+
+Menu --> CadastroCliente
+Menu --> RegistroDeEntradasESaidas
+Menu --> CSV
+Menu --> RelatoriosGerenciais
+
+Cliente ..> TicketEstacionamento : calcularTarifa(ticket)
+Avulso ..> TicketEstacionamento : calcularTarifa(ticket)
+Cliente ..> TIPOS
+Professor ..> TIPOS
+Estudante ..> TIPOS
+Empresa ..> TIPOS
+RegistroDeEntradasESaidas ..> TIPOS
+Avulso ..> TARIFAS
+Estudante ..> TARIFAS
+Empresa ..> TARIFAS
+
+note right of RegistroDeEntradasESaidas
+  listaNegra guarda placas de clientes Avulsos
+  com pagamento nao aprovado.
+
+  patio guarda apenas tickets em aberto.
+
+  historicoTickets guarda todos os tickets
+  emitidos, inclusive os que ainda estao no patio.
+end note
+
+note right of CSV
+  Persistencia em tres arquivos:
+  - clientes.CSV
+  - historico_tickets.CSV
+  - lista_negra.CSV
+
+  No boot, app.js reidrata memoria
+  a partir desses CSVs.
+end note
+
+note bottom of Cliente
+  Classe base concreta no codigo,
+  mas usada como superclasse das
+  categorias cadastradas.
+end note
+
+@enduml

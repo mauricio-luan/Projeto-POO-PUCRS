@@ -1,4 +1,5 @@
 import { validate } from "bycontract";
+import { TIPOS } from "../../constants.js";
 import Cliente from "./Cliente.js";
 
 /**
@@ -96,6 +97,27 @@ export default class CadastroCliente {
    */
   getCliente(documentoCliente) {
     return this.#clientes.get(documentoCliente);
+  }
+
+  getClienteComoObjeto(documentoCliente) {
+    const cliente = this.getCliente(documentoCliente);
+    if (!cliente) throw new Error("Cliente não encontrado");
+
+    const objCliente = {
+      nome: cliente.nome,
+      documento: cliente.documento,
+      tipo: cliente.tipo,
+      veiculos: cliente.veiculos,
+    };
+
+    if (cliente.tipo === TIPOS.ESTUDANTE) objCliente.saldo = cliente.saldo;
+
+    if (cliente.tipo === TIPOS.EMPRESA) {
+      objCliente.debitos = cliente.debitos;
+      objCliente.adimplente = cliente.adimplente;
+    }
+
+    return objCliente;
   }
 
   /**
